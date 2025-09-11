@@ -1,0 +1,6 @@
+# IDF Component Manager Manifest File
+idf:
+  version: ">=5.0.0"
+
+dependencies:
+  esp-idf-lib/dht: "*"

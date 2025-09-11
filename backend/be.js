@@ -1,44 +1,78 @@
-// backend/be.js  (Polling version — No WebSocket)
-const express = require('express');
-const cors = require('cors');
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const http = require("http");
+const WebSocket = require("ws");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+app.use(cors());
+app.use(express.json()); // ต้องมีเพื่อ parse JSON body
 
-// อนุญาตเฉพาะ origin ที่ไว้ใจได้ (แก้เป็นโดเมนจริงของคุณด้วย)
-const ALLOW_ORIGINS = new Set([
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'http://localhost:5173',
-  'https://web-temperature.vercel.app/',   // Vercel frontend ของคุณ
-]);
+// ===== เชื่อม MongoDB Atlas =====
+mongoose.connect(
+  "mongodb+srv://webtempdb:Puttharasu24@webtemp.zsolxoc.mongodb.net/?retryWrites=true&w=majority&appName=webtemp",
+  { useNewUrlParser: true, useUnifiedTopology: true }
+).then(() => console.log("✅ MongoDB Atlas connected"))
+  .catch(err => console.error("❌ MongoDB error:", err));
 
-app.use(cors({
-  origin: (origin, cb) => cb(null, !origin || ALLOW_ORIGINS.has(origin)),
-}));
+// ===== Schema & Model =====
+const tempSchema = new mongoose.Schema({
+  temperature: Number,
+  humidity: Number,
+  timestamp: { type: Date, default: Date.now }
+});
+const TempModel = mongoose.model("Temperature", tempSchema);
 
-app.use(express.json()); // ไม่ต้อง body-parser แล้ว
+// ===== Routes =====
 
-// เก็บค่าล่าสุดไว้ในหน่วยความจำ
-let latest = { temperature: null, humidity: null, at: null };
+// POST /temperature
+app.post("/temperature", async (req, res) => {
+  console.log("📥 Received POST /temperature:", req.body);
 
-// ESP32 จะ POST มาที่นี่
-app.post('/temperature', (req, res) => {
-  const { temperature, humidity } = req.body || {};
-  if (typeof temperature !== 'number' || typeof humidity !== 'number') {
-    return res.status(400).json({ error: 'Invalid payload: need number temperature & humidity' });
+  const { temperature, humidity } = req.body;
+
+  if (temperature === undefined || humidity === undefined) {
+    console.warn("⚠️ Missing temperature or humidity in POST body");
+    return res.status(400).json({ success: false, message: "Missing temperature or humidity" });
   }
-  latest = { temperature, humidity, at: Date.now() };
-  console.log('Received:', latest);
-  res.json({ ok: true });
+
+  try {
+    const data = new TempModel({ temperature, humidity });
+    await data.save();
+
+    // ส่งข้อมูลไปหา clients ทุกตัวผ่าน WebSocket
+    const payload = JSON.stringify({ temperature, humidity, timestamp: data.timestamp });
+    wss.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(payload);
+      }
+    });
+
+    console.log("✅ Saved to MongoDB Atlas:", payload);
+    res.json({ success: true, message: "Saved to MongoDB Atlas", data: payload });
+  } catch (err) {
+    console.error("❌ Error saving data:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-// Frontend ดึงค่าล่าสุดจากตรงนี้ (Polling)
-app.get('/data', (_req, res) => {
-  res.json(latest);
+// GET /temperature (ย้อนหลัง 20 ค่า)
+app.get("/temperature", async (req, res) => {
+  try {
+    const data = await TempModel.find().sort({ timestamp: -1 }).limit(20);
+    res.json(data);
+  } catch (err) {
+    console.error("❌ Error fetching data:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-// Health check
-app.get('/health', (_req, res) => res.send('ok'));
+// ===== สร้าง HTTP + WebSocket Server =====
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
 
-app.listen(PORT, () => console.log(`Backend listening on ${PORT}`)); // Health check
+wss.on("connection", ws => {
+  console.log("🌐 WebSocket client connected");
+});
+
+server.listen(3000, '0.0.0.0', () => console.log("🚀 Backend running on port 3000 (HTTP + WS)"));

@@ -1,136 +1,314 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Temperature and Humidity Monitor</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f0f4f8;
-            margin: 0;
-            flex-direction: column;
-            color: #333;
-        }
-        .container {
-            display: flex;
-            gap: 25px;
-            justify-content: center;
-            align-items: center;
-            padding: 2.5em;
-        }
-        .card {
-            text-align: center;
-            padding: 2.5em 3.5em;
-            background-color: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-        }
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-        .label {
-            font-size: 1.2em;
-            font-weight: 600;
-            color: #7f8c8d;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-        }
-        .value {
-            font-size: 4.5em;
-            font-weight: 700;
-            margin: 0;
-        }
-        .unit {
-            font-size: 1.5em;
-            color: #95a5a6;
-            margin-top: -10px;
-            display: block;
-        }
-        #temperature-value {
-            color: #e74c3c;
-        }
-        #humidity-value {
-            color: #3498db;
-        }
-        .status-message {
-            margin-top: 2em;
-            color: #555;
-            font-size: 1em;
-            background-color: #ecf0f1;
-            padding: 10px 20px;
-            border-radius: 8px;
-        }
-        .emoji {
-            font-size: 1.2em;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temperature and Humidity Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    /* --- พื้นหลังพาสเทลและฟองอากาศ --- */
+    body {
+        font-family: 'Poppins', sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2em;
+        background: linear-gradient(135deg, #ffecd2, #fcb69f, #a1c4fd, #c2e9fb);
+        margin: 0;
+        color: #333;
+        overflow-x: hidden;
+        position: relative;
+    }
+
+    /* ฟองอากาศ */
+    .bubble {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.6;
+        background: rgba(255, 255, 255, 0.3);
+        animation: rise 15s infinite;
+    }
+
+    @keyframes rise {
+        0% { transform: translateY(100vh) scale(0.5); opacity: 0.5; }
+        50% { opacity: 0.8; }
+        100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+    }
+
+    /* --- Card --- */
+    .container {
+        display: flex;
+        gap: 25px;
+        justify-content: center;
+        align-items: center;
+        margin-top: 1.5em;
+    }
+    .card {
+        text-align: center;
+        padding: 2em 3em;
+        background-color: rgba(255, 255, 255, 0.85);
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        backdrop-filter: blur(6px);
+    }
+    .card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+    h1 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+    .label {
+        font-size: 1.2em;
+        font-weight: 600;
+        color: #7f8c8d;
+        margin-bottom: 10px;
+    }
+    .value {
+        font-size: 4em;
+        font-weight: 700;
+        margin: 0;
+    }
+    .unit {
+        font-size: 1.3em;
+        color: #95a5a6;
+    }
+    #temperature-value { color: #ff6b6b; }
+    #humidity-value { color: #4dabf7; }
+
+    .status-message {
+        margin-top: 1.5em;
+        color: #555;
+        font-size: 1em;
+        background-color: rgba(255,255,255,0.7);
+        padding: 10px 20px;
+        border-radius: 8px;
+        backdrop-filter: blur(5px);
+    }
+
+    table {
+        margin-top: 2em;
+        width: 100%;
+        max-width: 600px;
+        border-collapse: collapse;
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(6px);
+    }
+    th, td {
+        padding: 12px 16px;
+        text-align: center;
+        border-bottom: 1px solid #eee;
+    }
+    th {
+        background: #a1c4fd;
+        color: #fff;
+    }
+    tr:hover { background: rgba(255,255,255,0.4); }
+
+    /* --- กราฟ --- */
+    #chart-container {
+        margin-top: 2em;
+        width: 100%;
+        max-width: 700px;
+        background: rgba(255,255,255,0.85);
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        backdrop-filter: blur(6px);
+    }
+</style>
 </head>
 <body>
     <h1>Current Weather Conditions</h1>
+
+    <!-- ฟองอากาศ -->
+    <div id="bubbles"></div>
+
     <div class="container">
         <div class="card">
-            <div class="label">Temperature <span class="emoji">🌡️</span></div>
+            <div class="label">Temperature 🌡️</div>
             <div class="value" id="temperature-value">--</div>
             <span class="unit">°C</span>
         </div>
         <div class="card">
-            <div class="label">Humidity <span class="emoji">💧</span></div>
+            <div class="label">Humidity 💧</div>
             <div class="value" id="humidity-value">--</div>
             <span class="unit">%</span>
         </div>
     </div>
+
     <div class="status-message" id="status-message">Connecting...</div>
 
-    <script>
-      // URL ของ Backend บน Render
-      const BACKEND_BASE = "http://172.20.10.9:3000/temperature";
+    <h2>History (latest 20 records)</h2>
+    <table id="history-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Temperature (°C)</th>
+                <th>Humidity (%)</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 
-      // ฟังก์ชันสำหรับอัปเดตค่าใน HTML
-      function setText(id, value) {
-        const el = document.getElementById(id);
-        if (el) el.textContent = value;
-      }
+    <div id="chart-container">
+        <canvas id="weatherChart"></canvas>
+    </div>
 
-      // ฟังก์ชันสำหรับดึงข้อมูลจาก Backend
-      async function fetchData() {
-        try {
-          const res = await fetch(`${BACKEND_BASE}/data`);
-          const data = await res.json();
+<script>
+    // --- สร้างฟองอากาศ ---
+    const bubblesContainer = document.getElementById('bubbles');
+    for(let i=0;i<30;i++){
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        const size = Math.random() * 20 + 10;
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+        bubble.style.left = `${Math.random()*100}vw`;
+        bubble.style.animationDuration = `${10 + Math.random()*10}s`;
+        bubble.style.animationDelay = `${Math.random()*5}s`;
+        bubblesContainer.appendChild(bubble);
+    }
 
-          if (data.temperature !== null) {
-            setText("temperature-value", data.temperature.toFixed(1));
-          }
-          if (data.humidity !== null) {
-            setText("humidity-value", data.humidity.toFixed(1));
-          }
-          setText("status-message", "Data updated successfully ✅");
-        } catch (err) {
-          console.error("Fetch error:", err);
-          setText("status-message", "Error fetching data ⚠️");
+    // --- กราฟ Chart.js ---
+    const ctx = document.getElementById('weatherChart').getContext('2d');
+    const chartData = {
+        labels: [],
+        datasets: [
+            {
+                label: 'Temperature (°C)',
+                data: [],
+                borderColor: '#ff6b6b',
+                backgroundColor: 'rgba(255,107,107,0.2)',
+                tension: 0.4
+            },
+            {
+                label: 'Humidity (%)',
+                data: [],
+                borderColor: '#4dabf7',
+                backgroundColor: 'rgba(77,171,247,0.2)',
+                tension: 0.4
+            }
+        ]
+    };
+    const weatherChart = new Chart(ctx, {
+        type: 'line',
+        data: chartData,
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'top' } },
+            scales: { x: { title: { display: true, text: 'Time' } }, y: { beginAtZero: true } }
         }
-      }
+    });
 
-      // เรียกฟังก์ชันครั้งแรกและตั้งเวลาให้ดึงข้อมูลทุกๆ 5 วินาที
-      fetchData();
-      setInterval(fetchData, 5000);
-    </script>
+    // --- ฟังก์ชันโหลดข้อมูลย้อนหลัง ---
+    async function fetchHistory() {
+        try {
+            const res = await fetch("http://172.20.10.2:3000/temperature");
+            const history = await res.json();
+
+            const tbody = document.querySelector("#history-table tbody");
+            tbody.innerHTML = "";
+            chartData.labels = [];
+            chartData.datasets[0].data = [];
+            chartData.datasets[1].data = [];
+
+            history.forEach(item => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${new Date(item.timestamp).toLocaleString()}</td>
+                    <td>${item.temperature.toFixed(1)}</td>
+                    <td>${item.humidity.toFixed(1)}</td>
+                `;
+                tbody.appendChild(row);
+
+                chartData.labels.unshift(new Date(item.timestamp).toLocaleTimeString());
+                chartData.datasets[0].data.unshift(item.temperature.toFixed(1));
+                chartData.datasets[1].data.unshift(item.humidity.toFixed(1));
+            });
+
+            if (history.length > 0) {
+                const latest = history[0];
+                document.getElementById('temperature-value').textContent = latest.temperature.toFixed(1);
+                document.getElementById('humidity-value').textContent = latest.humidity.toFixed(1);
+                document.getElementById('status-message').textContent = "Latest data loaded from MongoDB";
+            }
+
+            weatherChart.update();
+        } catch (err) {
+            console.error("Error fetching history:", err);
+            document.getElementById('status-message').textContent = "Failed to load history";
+        }
+    }
+
+    // --- เชื่อมต่อ WebSocket แบบ real-time ---
+    const ws = new WebSocket('ws://localhost:3001');
+
+    ws.onopen = () => {
+        console.log('Connected to WebSocket server');
+        document.getElementById('status-message').textContent = 'Real-time connection established';
+    };
+
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+
+            if (data.temperature !== undefined) {
+                document.getElementById('temperature-value').textContent = data.temperature.toFixed(1);
+            }
+            if (data.humidity !== undefined) {
+                document.getElementById('humidity-value').textContent = data.humidity.toFixed(1);
+            }
+
+            // อัปเดต history table
+            const tbody = document.querySelector("#history-table tbody");
+            const newRow = document.createElement("tr");
+            newRow.innerHTML = `
+                <td>${new Date().toLocaleString()}</td>
+                <td>${data.temperature.toFixed(1)}</td>
+                <td>${data.humidity.toFixed(1)}</td>
+            `;
+            tbody.insertBefore(newRow, tbody.firstChild);
+            if (tbody.rows.length > 20) tbody.deleteRow(tbody.rows.length - 1);
+
+            // อัปเดตกราฟ
+            const time = new Date().toLocaleTimeString();
+            chartData.labels.push(time);
+            chartData.datasets[0].data.push(data.temperature.toFixed(1));
+            chartData.datasets[1].data.push(data.humidity.toFixed(1));
+            if (chartData.labels.length > 20) {
+                chartData.labels.shift();
+                chartData.datasets[0].data.shift();
+                chartData.datasets[1].data.shift();
+            }
+            weatherChart.update();
+
+        } catch (error) {
+            console.error('Error parsing JSON:', error);
+        }
+    };
+
+    ws.onerror = (error) => {
+        console.error('WebSocket Error:', error);
+        document.getElementById('status-message').textContent = 'WebSocket error occurred';
+    };
+
+    ws.onclose = () => {
+        console.log('Disconnected from WebSocket server');
+        document.getElementById('status-message').textContent = 'WebSocket connection closed';
+    };
+
+    // โหลดข้อมูลย้อนหลังตอนเปิดเว็บ
+    fetchHistory();
+</script>
 </body>
 </html>

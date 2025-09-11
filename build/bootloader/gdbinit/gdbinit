@@ -1,0 +1,2 @@
+source D:/EMB/web-temperature/build/bootloader/gdbinit/symbols
+source D:/EMB/web-temperature/build/bootloader/gdbinit/connect
