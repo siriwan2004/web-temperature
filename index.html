@@ -128,7 +128,7 @@
         // --- ดึงข้อมูลย้อนหลังจาก MongoDB ผ่าน Backend ---
         async function fetchHistory() {
             try {
-                const res = await fetch("https://temp1-nq0y.onrender.com/temperature");
+                const res = await fetch("https://web-temperature-4.onrender.com/temperature");
                 const history = await res.json();
 
                 const tbody = document.querySelector("#history-table tbody");
@@ -157,7 +157,7 @@
         }
 
         // --- เชื่อมต่อ WebSocket แบบ real-time ---
-        const ws = new WebSocket('https://temp1-nq0y.onrender.com');
+        const ws = new WebSocket('https://web-temperature-4.onrender.com');
 
         ws.onopen = () => {
             console.log('Connected to WebSocket server');
