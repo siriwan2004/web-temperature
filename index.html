@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Temperature and Humidity Monitor</title>
-    <!-- Google Fonts for a fresh look -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
@@ -12,12 +12,11 @@
         body {
             font-family: 'Poppins', sans-serif;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            height: 100vh;
+            padding: 2em;
             background-color: #f0f4f8;
             margin: 0;
-            flex-direction: column;
             color: #333;
         }
         .container {
@@ -25,23 +24,23 @@
             gap: 25px;
             justify-content: center;
             align-items: center;
-            padding: 2.5em;
+            margin-top: 1.5em;
         }
         .card {
             text-align: center;
-            padding: 2.5em 3.5em;
+            padding: 2em 3em;
             background-color: #ffffff;
             border-radius: 16px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
         .card:hover {
-            transform: translateY(-8px);
+            transform: translateY(-6px);
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
         h1 {
             color: #2c3e50;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             font-weight: 700;
         }
         .label {
@@ -49,21 +48,15 @@
             font-weight: 600;
             color: #7f8c8d;
             margin-bottom: 10px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
         }
         .value {
-            font-size: 4.5em;
+            font-size: 4em;
             font-weight: 700;
             margin: 0;
         }
         .unit {
-            font-size: 1.5em;
+            font-size: 1.3em;
             color: #95a5a6;
-            margin-top: -10px;
-            display: block;
         }
         #temperature-value {
             color: #e74c3c;
@@ -72,15 +65,34 @@
             color: #3498db;
         }
         .status-message {
-            margin-top: 2em;
+            margin-top: 1.5em;
             color: #555;
             font-size: 1em;
             background-color: #ecf0f1;
             padding: 10px 20px;
             border-radius: 8px;
         }
-        .emoji {
-            font-size: 1.2em;
+        table {
+            margin-top: 2em;
+            width: 100%;
+            max-width: 600px;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            padding: 12px 16px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #3498db;
+            color: #fff;
+        }
+        tr:hover {
+            background: #f9f9f9;
         }
     </style>
 </head>
@@ -88,62 +100,113 @@
     <h1>Current Weather Conditions</h1>
     <div class="container">
         <div class="card">
-            <div class="label">Temperature <span class="emoji">🌡️</span></div>
+            <div class="label">Temperature 🌡️</div>
             <div class="value" id="temperature-value">--</div>
             <span class="unit">°C</span>
         </div>
         <div class="card">
-            <div class="label">Humidity <span class="emoji">💧</span></div>
+            <div class="label">Humidity 💧</div>
             <div class="value" id="humidity-value">--</div>
             <span class="unit">%</span>
         </div>
     </div>
     <div class="status-message" id="status-message">Connecting...</div>
 
+    <h2>History (latest 20 records)</h2>
+    <table id="history-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Temperature (°C)</th>
+                <th>Humidity (%)</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
     <script>
-        // Create WebSocket connection
+        // --- ดึงข้อมูลย้อนหลังจาก MongoDB ผ่าน Backend ---
+        async function fetchHistory() {
+            try {
+                const res = await fetch("http://localhost:3000/temperature");
+                const history = await res.json();
+
+                const tbody = document.querySelector("#history-table tbody");
+                tbody.innerHTML = "";
+
+                history.forEach(item => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${new Date(item.timestamp).toLocaleString()}</td>
+                        <td>${item.temperature.toFixed(1)}</td>
+                        <td>${item.humidity.toFixed(1)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                if (history.length > 0) {
+                    const latest = history[0];
+                    document.getElementById('temperature-value').textContent = latest.temperature.toFixed(1);
+                    document.getElementById('humidity-value').textContent = latest.humidity.toFixed(1);
+                    document.getElementById('status-message').textContent = "Latest data loaded from MongoDB";
+                }
+            } catch (err) {
+                console.error("Error fetching history:", err);
+                document.getElementById('status-message').textContent = "Failed to load history";
+            }
+        }
+
+        // --- เชื่อมต่อ WebSocket แบบ real-time ---
         const ws = new WebSocket('ws://localhost:3001');
 
-        // When connected
         ws.onopen = () => {
             console.log('Connected to WebSocket server');
-            document.getElementById('status-message').textContent = 'Connection successful';
+            document.getElementById('status-message').textContent = 'Real-time connection established';
         };
 
-        // When a message is received from the Backend
         ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                console.log('Received data:', data);
+                console.log('Real-time data:', data);
 
-                // Check and update temperature value
                 if (data.temperature !== undefined) {
                     document.getElementById('temperature-value').textContent = data.temperature.toFixed(1);
                 }
-
-                // Check and update humidity value
                 if (data.humidity !== undefined) {
                     document.getElementById('humidity-value').textContent = data.humidity.toFixed(1);
                 }
 
+                // เพิ่มข้อมูลใหม่เข้า history table (ด้านบนสุด)
+                const tbody = document.querySelector("#history-table tbody");
+                const newRow = document.createElement("tr");
+                newRow.innerHTML = `
+                    <td>${new Date().toLocaleString()}</td>
+                    <td>${data.temperature.toFixed(1)}</td>
+                    <td>${data.humidity.toFixed(1)}</td>
+                `;
+                tbody.insertBefore(newRow, tbody.firstChild);
+
+                // จำกัดแถวในตารางไม่เกิน 20
+                if (tbody.rows.length > 20) {
+                    tbody.deleteRow(tbody.rows.length - 1);
+                }
             } catch (error) {
                 console.error('Error parsing JSON:', error);
             }
         };
 
-        // When an error occurs
         ws.onerror = (error) => {
             console.error('WebSocket Error:', error);
-            document.getElementById('status-message').textContent = 'An error occurred during connection';
+            document.getElementById('status-message').textContent = 'WebSocket error occurred';
         };
 
-        // When the connection is closed
         ws.onclose = () => {
             console.log('Disconnected from WebSocket server');
-            document.getElementById('status-message').textContent = 'Connection closed';
+            document.getElementById('status-message').textContent = 'WebSocket connection closed';
         };
 
+        // --- โหลดข้อมูลย้อนหลังตอนเปิดเว็บ ---
+        fetchHistory();
     </script>
-
 </body>
 </html>
