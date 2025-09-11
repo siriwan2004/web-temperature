@@ -2,7 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const WebSocket = require('ws');
-const mongoose = require('mongoose'); // เพิ่ม mongoose
+const mongoose = require('mongoose');
 
 const app = express();
 const port = 3000;
@@ -14,7 +14,8 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // ====== เชื่อมต่อ MongoDB Atlas ======
-const uri = "mongodb+srv://webtempdb:Puttharasu24@webtemp.zsolxoc.mongodb.net/?retryWrites=true&w=majority&appName=webtem";
+const uri = "mongodb+srv://webtempdb:Puttharasu24@webtemp.zsolxoc.mongodb.net/temperatureDB?retryWrites=true&w=majority&appName=webtemp";
+// ↑ เพิ่มชื่อ database ชัดเจน เช่น temperatureDB
 
 mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("✅ Connected to MongoDB Atlas"))
@@ -53,6 +54,18 @@ app.post('/temperature', async (req, res) => {
   } catch (err) {
     console.error("❌ Error saving to MongoDB:", err);
     res.status(500).send("Error saving data");
+  }
+});
+
+// ====== HTTP endpoint สำหรับให้ Frontend เรียกดูข้อมูล ======
+app.get('/temperature', async (req, res) => {
+  try {
+    // ดึงข้อมูลล่าสุด 20 records
+    const data = await Temperature.find().sort({ timestamp: -1 }).limit(20);
+    res.json(data);
+  } catch (err) {
+    console.error("❌ Error fetching data:", err);
+    res.status(500).send("Error fetching data");
   }
 });
 
