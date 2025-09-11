@@ -1,1 +1,8 @@
+<<<<<<< HEAD
 node_modules/
+=======
+node_modules/
+dist/
+build/
+*.log
+>>>>>>> b595fe9b3ef5c5720350e10fa666c047c01ac1ac

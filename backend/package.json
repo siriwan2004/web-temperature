@@ -1,6 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
+<<<<<<< HEAD
   "main": "be.js",
   "scripts": {
     "start": "node be.js"
@@ -8,5 +9,25 @@
   "dependencies": {
     "express": "^4.18.2",
     "cors": "^2.8.5"
+=======
+  "main": "index.js",
+  "scripts": {
+    "start": "node backend/index.js",
+    "dev": "nodemon backend/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "mongoose": "^8.18.1",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+>>>>>>> b595fe9b3ef5c5720350e10fa666c047c01ac1ac
   }
 }

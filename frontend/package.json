@@ -1,6 +1,7 @@
 {
   "name": "frontend",
   "version": "1.0.0",
+<<<<<<< HEAD
   "main": "fe.js",
   "scripts": {
     "start": "node fe.js"
@@ -9,3 +10,17 @@
     "express": "^4.18.2"
   }
 }
+=======
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
+>>>>>>> b595fe9b3ef5c5720350e10fa666c047c01ac1ac
